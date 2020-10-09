@@ -1,0 +1,24 @@
+
+body, html {
+  height: 546px;
+  width: 410px;
+}
+
+pre {
+  max-height: 300px;
+  overflow-y: scroll;
+  background-color: white;
+  color: black;
+}
+
+#root{
+  height: 100%;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
