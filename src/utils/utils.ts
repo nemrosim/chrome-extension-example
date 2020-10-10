@@ -1,4 +1,7 @@
-import { LocalFile, ZIF } from "../components/zif";
+import { LocalFile, ZIF } from "./zif";
+import { AxiosResponse } from "axios";
+import JSZip from "jszip";
+import { ImageFormat } from "../types";
 
 /**
  * Removes
@@ -52,10 +55,6 @@ export const drawZifImageOnACanvas = async (levels): Promise<any> => {
     return await promise;
 }
 
-export const fetchDataAndReturnBase64StringForZipFolder = () => {
-
-
-}
 export const convertZifBlobToBase64 = async (data: Blob, fileName: string, callback: Function): Promise<any> => {
     if (!(data instanceof Blob)) {
         throw new Error('Input data is not a Blob type')
@@ -65,17 +64,75 @@ export const convertZifBlobToBase64 = async (data: Blob, fileName: string, callb
     const zif = new ZIF(localFile);
 
     const levels = await zif.getLevel(0);
-    const base64 =  await drawZifImageOnACanvas(levels);
+    const base64 = await drawZifImageOnACanvas(levels);
 
     const temp = removeMetaDataFromBase64(base64);
     callback();
     return {
-        base64: temp,
+        data: temp,
         fileName,
     }
 }
 
-export const addFileToZipFolder = ()=>{
+export const extractFileFormatFromUrl = (url: string) => {
+    const temp = url.split('/');
+    return temp[temp.length - 1].split('.')[1];
+}
+
+export const extractFileNameFromUrl = (url: string) => {
+    const temp = url.split('/');
+    return temp[temp.length - 1].split('.')[0];
+}
+
+export const convertJpegsResponse = (downloadedFiles: Array<AxiosResponse>) => {
+    const result = [];
+    downloadedFiles.forEach((response: AxiosResponse) => {
+            const fileName = extractFileNameFromUrl(response.config.url);
+
+            result.push({
+                fileName,
+                data: response.data,
+            })
+        }
+    ) ;
+
+    return result;
+}
+export const convertZifFilesToJPEGs = async (downloadedFiles: Array<AxiosResponse>, setAmountOfFilesProcessed) => {
+    const zifPromises = [];
+    downloadedFiles.forEach((response: AxiosResponse) => {
+            const fileName = extractFileFormatFromUrl(response.config.url);
+            zifPromises.push(convertZifBlobToBase64(response.data, fileName, () => {
+                setAmountOfFilesProcessed((prev) => prev + 1)
+            }))
+        }
+    )
+
+    return await Promise.all(zifPromises);
+}
+
+export const createZipFolderWithJPEGs = async (jpegs, isBase64: boolean = true) => {
+    const zip = new JSZip();
+    jpegs.forEach(e => {
+        zip.file(`images/${e.fileName}.jpg`, e.data, {base64: isBase64});
+    })
+
+    return await zip.generateAsync({type: "blob"});
+}
+
+export const createLinkForDownload = (object: any, shouldBeDownloadedImmediately: boolean = false): HTMLAnchorElement => {
+    const url = URL.createObjectURL(object);
+
+    const htmlAnchorElement = document.createElement('a');
+
+    htmlAnchorElement.download = 'images';
+    htmlAnchorElement.href = url;
+
+    if (shouldBeDownloadedImmediately) {
+        htmlAnchorElement.click();
+    }
+
+    return htmlAnchorElement;
 
 }
 

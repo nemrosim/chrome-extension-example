@@ -5,13 +5,18 @@ import * as serviceWorker from './serviceWorker';
 
 import './assets/styles/css-reset.css';
 import './assets/styles/App.css'
-import { CurrentTabGuard } from "./components/CurrentTabGuard";
+import { CurrentTabGuard, ErrorBoundary } from "./components";
+import { SnackbarProvider } from "notistack";
 
 ReactDOM.render(
     <React.StrictMode>
-        <CurrentTabGuard>
-            <App/>
-        </CurrentTabGuard>
+        <ErrorBoundary>
+            <SnackbarProvider maxSnack={3}>
+                <CurrentTabGuard>
+                    <App/>
+                </CurrentTabGuard>
+            </SnackbarProvider>
+        </ErrorBoundary>
     </React.StrictMode>,
     document.getElementById('root')
 );

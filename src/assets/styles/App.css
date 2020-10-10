@@ -4,6 +4,10 @@ body, html {
   width: 410px;
 }
 
+body {
+  background-image: url('../images/background.jpg');
+}
+
 pre {
   max-height: 300px;
   overflow-y: scroll;
