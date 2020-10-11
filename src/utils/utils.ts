@@ -1,7 +1,6 @@
 import { LocalFile, ZIF } from "./zif";
 import { AxiosResponse } from "axios";
 import JSZip from "jszip";
-import { ImageFormat } from "../types";
 
 /**
  * Removes
@@ -94,14 +93,14 @@ export const convertJpegsResponse = (downloadedFiles: Array<AxiosResponse>) => {
                 data: response.data,
             })
         }
-    ) ;
+    );
 
     return result;
 }
 export const convertZifFilesToJPEGs = async (downloadedFiles: Array<AxiosResponse>, setAmountOfFilesProcessed) => {
     const zifPromises = [];
     downloadedFiles.forEach((response: AxiosResponse) => {
-            const fileName = extractFileFormatFromUrl(response.config.url);
+            const fileName = extractFileNameFromUrl(response.config.url);
             zifPromises.push(convertZifBlobToBase64(response.data, fileName, () => {
                 setAmountOfFilesProcessed((prev) => prev + 1)
             }))
@@ -111,10 +110,11 @@ export const convertZifFilesToJPEGs = async (downloadedFiles: Array<AxiosRespons
     return await Promise.all(zifPromises);
 }
 
-export const createZipFolderWithJPEGs = async (jpegs, isBase64: boolean = true) => {
+export const createZipFolderWithJPEGs = async (jpegs, isBase64: boolean = true, folderName: string) => {
+
     const zip = new JSZip();
     jpegs.forEach(e => {
-        zip.file(`images/${e.fileName}.jpg`, e.data, {base64: isBase64});
+        zip.file(`${folderName}/${e.fileName}.jpg`, e.data, {base64: isBase64});
     })
 
     return await zip.generateAsync({type: "blob"});
@@ -135,4 +135,15 @@ export const createLinkForDownload = (object: any, shouldBeDownloadedImmediately
     return htmlAnchorElement;
 
 }
+
+export const getDownloadLinkProps = (object: any, downloadName:string): { download: string, href: string } => {
+    const url = URL.createObjectURL(object);
+
+    return {
+        download: downloadName,
+        href: url,
+    };
+
+}
+
 

@@ -1,28 +1,28 @@
 
 body, html {
-  height: 546px;
-  width: 410px;
+    height: 530px;
+    width: 380px;
 }
 
 body {
-  background-image: url('../images/background.jpg');
+    background-image: url('../images/background.jpg');
 }
 
 pre {
-  max-height: 300px;
-  overflow-y: scroll;
-  background-color: white;
-  color: black;
+    max-height: 300px;
+    overflow-y: scroll;
+    background-color: white;
+    color: black;
 }
 
-#root{
-  height: 100%;
+#root {
+    height: 100%;
 }
 
 .container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
 }
 

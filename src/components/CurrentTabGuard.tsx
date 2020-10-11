@@ -1,7 +1,8 @@
 import { Box, Typography } from "@material-ui/core";
-import React, { useEffect, useState } from "react";
+import React, { useContext } from "react";
+import { AppContext } from "./AppContextProvider";
 
-export const ErrorTypography: React.FC<{text:string}> = ({text}) => {
+export const ErrorTypography: React.FC<{ text: string }> = ({text}) => {
     return (
         <div className="container">
             <Box m={4}>
@@ -14,20 +15,9 @@ export const ErrorTypography: React.FC<{text:string}> = ({text}) => {
 }
 
 export const CurrentTabGuard: React.FC = ({children}) => {
-    const [currentUrl, setCurrentUrl] = useState();
+    const {isRgada, isIrbis} = useContext(AppContext);
 
-    useEffect(() => {
-        const queryInfo = {active: true, lastFocusedWindow: true};
-
-        chrome.tabs && chrome.tabs.query(queryInfo, tabs => {
-            const url = tabs[0].url;
-            setCurrentUrl(url);
-        });
-    }, []);
-
-    const isB = currentUrl && currentUrl.startsWith('http://rgada.info/');
-
-    if (chrome.tabs && !isB) {
+    if (chrome.tabs && !isRgada && !isIrbis) {
         return (
             <ErrorTypography text='Это дополнение не предназначено для данного ресурса'/>
         )

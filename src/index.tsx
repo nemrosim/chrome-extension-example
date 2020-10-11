@@ -7,14 +7,19 @@ import './assets/styles/css-reset.css';
 import './assets/styles/App.css'
 import { CurrentTabGuard, ErrorBoundary } from "./components";
 import { SnackbarProvider } from "notistack";
+import { AppContextProvider } from "./components/AppContextProvider";
+
+import './chrome/content'
 
 ReactDOM.render(
     <React.StrictMode>
         <ErrorBoundary>
             <SnackbarProvider maxSnack={3}>
-                <CurrentTabGuard>
-                    <App/>
-                </CurrentTabGuard>
+                <AppContextProvider>
+                    <CurrentTabGuard>
+                        <App/>
+                    </CurrentTabGuard>
+                </AppContextProvider>
             </SnackbarProvider>
         </ErrorBoundary>
     </React.StrictMode>,

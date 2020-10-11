@@ -1,13 +1,11 @@
-import { Box, CircularProgress, Typography } from "@material-ui/core";
-import image from "../assets/images/orel_small.gif";
+import { Box, CircularProgress, Link, Typography } from "@material-ui/core";
 import React from "react";
+import { Logo } from "./Logo";
 
-export const GenerateZipInfo = () => {
+export const GenerateZipInfo: React.FC<{ anchors: Array<any> }> = ({anchors}) => {
     return (
         <div className="container">
-            <Box m={2}>
-                <img src={image} style={{height: '130px'}}/>
-            </Box>
+            <Logo/>
             <Typography variant="h6">
                 Последний штрих...
             </Typography>
@@ -17,6 +15,18 @@ export const GenerateZipInfo = () => {
             <Box position="relative" display="inline-flex" m={2}>
                 <CircularProgress/>
             </Box>
+            {
+                anchors && anchors.length !== 0 && anchors.map((e, index) => {
+                        return (
+                            <Box mt={0}>
+                                <Link {...e}>
+                                    {`Скачать архив часть ${index + 1}`}
+                                </Link>
+                            </Box>
+                        )
+                    }
+                )
+            }
         </div>
     )
 }

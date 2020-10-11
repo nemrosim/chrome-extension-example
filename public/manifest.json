@@ -14,20 +14,21 @@
   },
   "background": {
     "scripts": [
-      "background.js"
+      "./static/js/background.js"
     ],
     "persistent": false
   },
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
+      "js": ["./static/js/content.js"],
       "run_at": "document_end",
       "all_frames": false
     }
   ],
   "permissions": [
     "activeTab",
-    "tabs"
+    "tabs",
+    "storage"
   ]
 }

@@ -1,27 +1,26 @@
-import { Box, Button } from "@material-ui/core";
-import React, { Dispatch, SetStateAction } from "react";
-import { getUrlsFromTheDOMHandler } from "../utils/chrome";
+import { Box, Button, Typography } from "@material-ui/core";
+import React, { useContext } from "react";
+import * as Utils from "../utils/chrome";
 import { useSnackbar } from "notistack";
 import { ImageUrl } from "../types";
+import { AppContext } from "./AppContextProvider";
 
 interface GetUrlsFromDOMButtonProps {
-    setter: Dispatch<SetStateAction<Array<ImageUrl>>>,
     type: 'jpeg' | 'zif',
     text: string
 }
 
-export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({setter, type, text}) => {
+export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({type, text}) => {
     const {enqueueSnackbar} = useSnackbar();
+    const {isRgada, setRgadaImageUrls, setIrbisPdfUrl} = useContext(AppContext);
+
+    const host = isRgada ? 'rgada' : 'irbis'
 
     const onClickHandler = () => {
-        getUrlsFromTheDOMHandler(type, (response) => {
-
+        Utils.getUrlsFromTheDOMHandler(host, type, (response) => {
             if (response && response instanceof Array && response.length > 0) {
                 const temp = response[0].split('/');
                 if (temp[temp.length - 1].split('.')[1] === 'jpg') {
-                    enqueueSnackbar('Это не Zif файлы, а Jpeg', {
-                        variant: 'info',
-                    });
                     enqueueSnackbar('Готово', {
                         variant: 'success',
                     });
@@ -33,8 +32,12 @@ export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({sette
                             format: 'jpeg',
                         } as ImageUrl
                     })
-                    setter(result);
+                    setRgadaImageUrls(result);
                 } else {
+                    enqueueSnackbar('Готово.', {
+                        variant: 'success',
+                    });
+
                     const result = response.map((url) => {
                         return {
                             url,
@@ -42,16 +45,41 @@ export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({sette
                             format: 'zif',
                         } as ImageUrl
                     })
-                    setter(result);
+                    setRgadaImageUrls(result);
                 }
+            }
+
+            if (response && typeof response === 'string') {
+                enqueueSnackbar('Готово', {
+                    variant: 'success',
+                });
+
+                setIrbisPdfUrl(response);
             }
         })
     }
     return (
-        <Box m={1}>
+        <>
+            <Typography variant="body1">
+                Некоторые изображения занимают по 16 мегабай.
+            </Typography>
+            <Typography variant="body1">
+                Если документ состоит из 170 изабражений
+            </Typography>
+            <Typography variant="body1">
+                общий размер может составить 2 Гигабайта
+            </Typography>
+            <Typography variant="body1">
+                Учитывайте это! Освободите место на диске
+            </Typography>
+            <Typography variant="body1">
+                если требуется
+            </Typography>
+        <Box m={4}>
             <Button onClick={onClickHandler} variant='contained' color="primary">
                 {text}
             </Button>
         </Box>
+            </>
     )
 }
