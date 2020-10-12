@@ -1,10 +1,11 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { Dispatch, SetStateAction, useContext, useEffect, useState } from 'react';
 import { Box, Button, Link, TextField, Typography } from "@material-ui/core";
 import {
     convertJpegsResponse,
     convertZifFilesToJPEGs,
     createZipFolderWithJPEGs,
-    getDownloadLinkProps
+    getDownloadLinkProps,
+    splitArrayToChunks
 } from "../utils/utils";
 import { CircularProgressWithPercentage, GenerateZipInfo, Logo, ProcessingFilesInfo } from "./";
 
@@ -13,10 +14,32 @@ import { GetUrlsFromDOMButton } from "./GetUrlsFromDOMButton";
 import { downloadFiles } from "../utils/downloads";
 import { AppContext } from "./AppContextProvider";
 import { useSnackbar } from "notistack";
+import { LocalStorageContext } from "./LocalStorageProvider";
+import { ImageData, ImageFormat } from "../types";
+import { logInfo, logSuccess } from "../utils/console";
+
+interface DOW {
+    urls: Array<ImageData>,
+    imageFormat: ImageFormat,
+    setter: Dispatch<SetStateAction<number>>,
+}
 
 export const App = () => {
 
-    const {rgadaImageUrls, irbisPdfUrl, setRgadaImageUrls} = useContext(AppContext);
+    const {
+        currentUrl,
+        rgadaImageUrls,
+        irbisPdfUrl,
+        setRgadaImageUrls
+    } = useContext(AppContext);
+
+    const {
+        isDataSetToLocalStorage,
+        setIsDataSetToLocalStorage,
+        currentUrlLocalStorageData,
+        setCurrentUrlLocalStorageData
+    } = useContext(LocalStorageContext);
+
     const {enqueueSnackbar} = useSnackbar();
 
     const [downloadLinkForDomImageUrls, setDownloadLinkForDomImageUrls] = useState<Pick<HTMLAnchorElement, 'download' | 'href'>>();
@@ -71,6 +94,92 @@ export const App = () => {
 
     }
 
+
+    const downloadDataByChunks = async ({urls, imageFormat, setter}: DOW) => {
+
+        chrome.storage.local.remove([currentUrl], () => {
+            console.log('Storage is cleared')
+        })
+
+        if (currentUrlLocalStorageData) {
+            console.log('Storage not empty', currentUrlLocalStorageData)
+            const a = urls.filter(imageData => {
+                const found = currentUrlLocalStorageData.downloadedFiles.find(file => {
+                    return file.config.url === imageData.url
+                })
+
+                console.log('found', found);
+
+                if (found) {
+                    return true;
+                } else {
+                    return false
+                }
+            })
+
+            console.log("AAAA", a);
+        }
+
+
+        const imageUrlChunks = splitArrayToChunks(urls, 2);
+
+        const result = []
+        for (const urls of imageUrlChunks) {
+            const downloadedFiles = await downloadFiles({
+                imageUrls: urls,
+                format: imageFormat,
+                setter
+            });
+
+            console.log('downloaded files', downloadedFiles)
+
+            chrome.storage.local.set({[currentUrl]: downloadedFiles}, ()=>{
+                logSuccess("data is saved")
+            })
+
+
+            // chrome.storage.local.get([currentUrl], (result) => {
+            //     if (result[currentUrl]) {
+            //         console.log('RESULT', result[currentUrl]);
+            //
+            //         const a = JSON.parse(result[currentUrl]);
+            //
+            //         console.log('ZZZ', a)
+            //
+            //         const tempCopy = [...a.downloadedFiles];
+            //
+            //         console.log('TEMP', tempCopy);
+            //
+            //         const res = [...tempCopy, ...downloadedFiles];
+            //
+            //         console.log('ARRAY RESULT', res);
+            //
+            //         const value = {
+            //             currentUrl,
+            //             rgadaImageUrls,
+            //             downloadedFiles: [...tempCopy, ...downloadedFiles],
+            //             imageFormat,
+            //         };
+            //
+            //         JSON.stringify(value);
+            //
+            //         chrome.storage
+            //             .local.set({[currentUrl]: JSON.stringify(value)}, () => {
+            //             logSuccess("Data is set to local storage");
+            //         });
+            //     } else {
+            //         logInfo('Storage is empty');
+            //         chrome.storage
+            //             .local.set({[currentUrl]: JSON.stringify(value)}, () => {
+            //             logSuccess("Data is set to local storage");
+            //         });
+            //     }
+            // });
+            result.push(downloadedFiles);
+        }
+        return result;
+    }
+
     const processChunk = async (temp) => {
         const result = []
         for (const files of temp) {
@@ -95,7 +204,7 @@ export const App = () => {
         }
     }
 
-    const asd = () => {
+    const saveToStorage = () => {
 
     }
 
@@ -106,15 +215,15 @@ export const App = () => {
 
         const imageFormat = rgadaImageUrls[0].format;
 
-
-
-        const downloadedFiles = await downloadFiles({
-            imageUrls: rgadaImageUrls,
-            format: imageFormat,
+        const downloadedFiles = await downloadDataByChunks({
+            imageFormat,
+            urls: rgadaImageUrls.slice(0, 2),
             setter: setTotalPercent
         });
 
-        console.log('downloadedFiles')
+        chrome.storage.local.get([currentUrl], (result) => {
+            console.log('!!! Value currently is ', result[currentUrl]);
+        });
 
 
         //

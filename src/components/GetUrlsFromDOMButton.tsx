@@ -2,7 +2,7 @@ import { Box, Button, Typography } from "@material-ui/core";
 import React, { useContext } from "react";
 import * as Utils from "../utils/chrome";
 import { useSnackbar } from "notistack";
-import { ImageUrl } from "../types";
+import { ImageData } from "../types";
 import { AppContext } from "./AppContextProvider";
 
 interface GetUrlsFromDOMButtonProps {
@@ -30,7 +30,7 @@ export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({type,
                             url,
                             size: 'large',
                             format: 'jpeg',
-                        } as ImageUrl
+                        } as ImageData
                     })
                     setRgadaImageUrls(result);
                 } else {
@@ -43,7 +43,7 @@ export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({type,
                             url,
                             size: 'large',
                             format: 'zif',
-                        } as ImageUrl
+                        } as ImageData
                     })
                     setRgadaImageUrls(result);
                 }
@@ -60,26 +60,21 @@ export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({type,
     }
     return (
         <>
-            <Typography variant="body1">
-                Некоторые изображения занимают по 16 мегабай.
-            </Typography>
-            <Typography variant="body1">
-                Если документ состоит из 170 изабражений
-            </Typography>
-            <Typography variant="body1">
-                общий размер может составить 2 Гигабайта
-            </Typography>
-            <Typography variant="body1">
-                Учитывайте это! Освободите место на диске
-            </Typography>
-            <Typography variant="body1">
-                если требуется
-            </Typography>
-        <Box m={4}>
-            <Button onClick={onClickHandler} variant='contained' color="primary">
-                {text}
-            </Button>
-        </Box>
-            </>
+            <Box m={1}>
+
+                <Typography variant="body1" align='center' color='secondary'>
+                    Некоторые изображения занимают по 16 мегабай.
+                    Если документ состоит из 170 изабражений
+                    общий размер может составить 2 Гигабайта
+                    Учитывайте это! Освободите место на диске
+                    если требуется
+                </Typography>
+            </Box>
+            <Box m={4}>
+                <Button onClick={onClickHandler} variant='contained' color="primary">
+                    {text}
+                </Button>
+            </Box>
+        </>
     )
 }

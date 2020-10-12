@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { Dispatch, SetStateAction } from "react";
-import { ImageFormat, ImageUrl } from "../types";
+import { ImageFormat, ImageData } from "../types";
 
 const onDownloadAxiosProgressHandler = (
     {
@@ -27,7 +27,7 @@ const onDownloadAxiosProgressHandler = (
 
 interface DownloadFilesProps {
     format: ImageFormat,
-    imageUrls: Array<ImageUrl>,
+    imageUrls: Array<ImageData>,
     setter: Dispatch<SetStateAction<number>>
 }
 

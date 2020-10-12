@@ -110,6 +110,18 @@ export const convertZifFilesToJPEGs = async (downloadedFiles: Array<AxiosRespons
     return await Promise.all(zifPromises);
 }
 
+export const splitArrayToChunks = (array: Array<any>, chunkAmount: number) => {
+    const temp = [];
+
+    let i, j, chunk = chunkAmount;
+
+    for (i = 0, j = array.length; i < j; i += chunk) {
+        temp.push(array.slice(i, i + chunk))
+    }
+
+    return temp;
+}
+
 export const createZipFolderWithJPEGs = async (jpegs, isBase64: boolean = true, folderName: string) => {
 
     const zip = new JSZip();
@@ -136,7 +148,7 @@ export const createLinkForDownload = (object: any, shouldBeDownloadedImmediately
 
 }
 
-export const getDownloadLinkProps = (object: any, downloadName:string): { download: string, href: string } => {
+export const getDownloadLinkProps = (object: any, downloadName: string): { download: string, href: string } => {
     const url = URL.createObjectURL(object);
 
     return {

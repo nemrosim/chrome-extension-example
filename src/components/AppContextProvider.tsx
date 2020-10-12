@@ -1,13 +1,13 @@
 import React, { createContext, Dispatch, FC, SetStateAction, useEffect, useState } from "react";
-import { ImageUrl } from "../types";
+import { ImageData } from "../types";
 
 interface ContextProps {
     currentUrl?: string,
     isRgada?: boolean,
     isIrbis?: boolean,
 
-    rgadaImageUrls: Array<ImageUrl>,
-    setRgadaImageUrls: Dispatch<SetStateAction<Array<ImageUrl>>>,
+    rgadaImageUrls: Array<ImageData>,
+    setRgadaImageUrls: Dispatch<SetStateAction<Array<ImageData>>>,
 
     irbisPdfUrl: string,
     setIrbisPdfUrl: Dispatch<SetStateAction<string>>,
@@ -30,7 +30,7 @@ export const AppContextProvider: FC = ({children}) => {
     const [isRgada, setIsRgada] = useState<boolean>();
     const [isIrbis, setIsIrbis] = useState<boolean>();
 
-    const [rgadaImageUrls, setRgadaImageUrls] = useState<Array<ImageUrl>>();
+    const [rgadaImageUrls, setRgadaImageUrls] = useState<Array<ImageData>>();
     const [irbisPdfUrl, setIrbisPdfUrl] = useState<string>();
 
     useEffect(() => {

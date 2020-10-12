@@ -10,15 +10,23 @@ import { SnackbarProvider } from "notistack";
 import { AppContextProvider } from "./components/AppContextProvider";
 
 import './chrome/content'
+import { LocalStorageProvider } from "./components/LocalStorageProvider";
 
 ReactDOM.render(
     <React.StrictMode>
         <ErrorBoundary>
-            <SnackbarProvider maxSnack={3}>
+            <SnackbarProvider maxSnack={3}
+                              anchorOrigin={{
+                                  vertical: 'top',
+                                  horizontal: 'center',
+                              }}
+                              autoHideDuration={3000}>
                 <AppContextProvider>
-                    <CurrentTabGuard>
-                        <App/>
-                    </CurrentTabGuard>
+                    <LocalStorageProvider>
+                        <CurrentTabGuard>
+                            <App/>
+                        </CurrentTabGuard>
+                    </LocalStorageProvider>
                 </AppContextProvider>
             </SnackbarProvider>
         </ErrorBoundary>
