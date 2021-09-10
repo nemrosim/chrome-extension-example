@@ -1,5 +1,5 @@
 export const parseIrbis = (): Array<string> => {
-    const htmlCollectionOfImages = document.getElementsByTagName('img')
+    const htmlCollectionOfImages = document.getElementsByTagName('img');
 
     let htmlImageElement: HTMLImageElement;
 
@@ -7,12 +7,11 @@ export const parseIrbis = (): Array<string> => {
         if (imageElement.src.includes('irbis_ir/images/full_text.png')) {
             htmlImageElement = imageElement;
         }
-    })
+    });
 
     // @ts-ignore
     if (htmlImageElement) {
-
-        const result: Array<string> = []
+        const result: Array<string> = [];
 
         const parentElement = htmlImageElement.parentElement;
 
@@ -20,8 +19,6 @@ export const parseIrbis = (): Array<string> => {
 
         if (anchors && anchors.length) {
             Array.from(anchors).forEach((anchorElement: HTMLAnchorElement) => {
-
-
                 const anchorHref = anchorElement.href;
 
                 const slittedStringList = anchorHref.split('&');
@@ -34,13 +31,13 @@ export const parseIrbis = (): Array<string> => {
                 const a = fileName[fileName.length - 1];
 
                 result.push(`http://irbis-nbuv.gov.ua/E_LIB/PDF/${a}.pdf`);
-            })
+            });
         }
         return result;
     } else {
-        return []
+        return [];
     }
-}
+};
 
 type ImageFormat = 'jpeg' | 'zif';
 
@@ -48,7 +45,6 @@ export const parseRgada = (imageFormat: ImageFormat): Array<string> | undefined 
     const htmlCollectionOf = document.getElementsByClassName('es-carousel');
 
     if (htmlCollectionOf.length === 1) {
-
         const ulList = htmlCollectionOf[0].getElementsByTagName('ul');
 
         if (ulList.length === 1) {
@@ -62,7 +58,7 @@ export const parseRgada = (imageFormat: ImageFormat): Array<string> | undefined 
 
             const result: Array<string> = [];
 
-            imagesList.forEach(image => {
+            imagesList.forEach((image) => {
                 const imageUrl = image.getAttribute(attributeName);
                 imageUrl && result.push(HOST + imageUrl);
             });
@@ -70,4 +66,4 @@ export const parseRgada = (imageFormat: ImageFormat): Array<string> | undefined 
             return result;
         }
     }
-}
+};

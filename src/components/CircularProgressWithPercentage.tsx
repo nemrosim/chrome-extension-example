@@ -1,10 +1,10 @@
-import { Box, CircularProgress, Typography } from "@material-ui/core";
-import React from "react";
+import { Box, CircularProgress, Typography } from '@material-ui/core';
+import React from 'react';
 
-export const CircularProgressWithPercentage = ({percentCompleted}) => {
+export const CircularProgressWithPercentage = ({ percentCompleted }) => {
     return (
         <Box position="relative" display="inline-flex" m={2}>
-            <CircularProgress variant="static" value={percentCompleted}/>
+            <CircularProgress variant="static" value={percentCompleted} />
             <Box
                 top={0}
                 left={0}
@@ -15,12 +15,10 @@ export const CircularProgressWithPercentage = ({percentCompleted}) => {
                 alignItems="center"
                 justifyContent="center"
             >
-                <Typography variant="caption"
-                            component="div"
-                            color="textSecondary">
+                <Typography variant="caption" component="div" color="textSecondary">
                     {`${percentCompleted}%`}
                 </Typography>
             </Box>
         </Box>
     );
-}
+};

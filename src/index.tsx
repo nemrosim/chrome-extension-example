@@ -1,40 +1,49 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { App } from './components/App';
-import * as serviceWorker from './serviceWorker';
+import { SnackbarProvider } from 'notistack';
+import reportWebVitals from './reportWebVitals';
+
+import { App } from './App';
+import { CurrentTabGuard, ErrorBoundary, Logo } from './components';
+import { LocalStorageProvider, UrlContextProvider } from './components';
+
+import './chrome/content';
 
 import './assets/styles/css-reset.css';
-import './assets/styles/App.css'
-import { CurrentTabGuard, ErrorBoundary } from "./components";
-import { SnackbarProvider } from "notistack";
-import { AppContextProvider } from "./components/AppContextProvider";
-
-import './chrome/content'
-import { LocalStorageProvider } from "./components/LocalStorageProvider";
+import './assets/styles/App.css';
+import { ProgressContext } from './components/contexts';
+import { ProgressContextProvider } from './components/contexts/ProgressContext';
 
 ReactDOM.render(
     <React.StrictMode>
         <ErrorBoundary>
-            <SnackbarProvider maxSnack={3}
-                              anchorOrigin={{
-                                  vertical: 'top',
-                                  horizontal: 'center',
-                              }}
-                              autoHideDuration={3000}>
-                <AppContextProvider>
+            <SnackbarProvider
+                maxSnack={3}
+                anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'center',
+                }}
+                autoHideDuration={3000}
+            >
+                <UrlContextProvider>
                     <LocalStorageProvider>
-                        <CurrentTabGuard>
-                            <App/>
-                        </CurrentTabGuard>
+                        <ProgressContextProvider>
+                            <CurrentTabGuard>
+                                <div className="container">
+                                    <Logo />
+                                    <App />
+                                </div>
+                            </CurrentTabGuard>
+                        </ProgressContextProvider>
                     </LocalStorageProvider>
-                </AppContextProvider>
+                </UrlContextProvider>
             </SnackbarProvider>
         </ErrorBoundary>
     </React.StrictMode>,
-    document.getElementById('root')
+    document.getElementById('root'),
 );
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();

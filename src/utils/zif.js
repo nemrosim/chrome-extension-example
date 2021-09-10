@@ -1,24 +1,23 @@
 export class ZIF {
-
     constructor(file) {
         this.file = file;
         this.head = this.parseHead(); // A promise for the header
     }
 
     getTile(x, y, zoomLevel) {
-        return this.getLevel(zoomLevel).then(level => level.getTile(x, y));
+        return this.getLevel(zoomLevel).then((level) => level.getTile(x, y));
     }
 
     getLevel(zoomLevel) {
-        return this.head.then(levels => levels[zoomLevel]);
+        return this.head.then((levels) => levels[zoomLevel]);
     }
 
     parseHead() {
-        return this.file.getBytes(0, ZIF.MAX_HEAD_SIZE).then(b => this.parseHeadBytes(b));
+        return this.file.getBytes(0, ZIF.MAX_HEAD_SIZE).then((b) => this.parseHeadBytes(b));
     }
 
     parseHeadBytes(bytes) {
-        if (bytes.long(0) !== 0x08002b4949) throw new Error("invalid zif file");
+        if (bytes.long(0) !== 0x08002b4949) throw new Error('invalid zif file');
         let levels = [];
         let ptr = 0x8;
         while ((ptr = bytes.long(ptr)) !== 0 && ptr < ZIF.MAX_HEAD_SIZE) {
@@ -45,14 +44,15 @@ class ZoomLevel {
 
     getTilesInfos() {
         if (this.tilesInfos === null) {
-            this.tilesInfos = Promise.all([this.getTileOffsets(), this.getTileSizes()])
-                .then(ZoomLevel.transpose);
+            this.tilesInfos = Promise.all([this.getTileOffsets(), this.getTileSizes()]).then(
+                ZoomLevel.transpose,
+            );
         }
         return this.tilesInfos;
     }
 
     getTile(x, y) {
-        return this.getTilesInfos().then(infos => this.subFile(infos[this.xy2num(x, y)]));
+        return this.getTilesInfos().then((infos) => this.subFile(infos[this.xy2num(x, y)]));
     }
 
     set(k, v1, v2) {
@@ -88,8 +88,9 @@ class ZoomLevel {
 
     subFile(posAndSize) {
         let [pos, size] = posAndSize;
-        return this.file.getBytes(pos, pos + size)
-            .then(bytes => new Blob([bytes.u8], {"type": "image/jpeg"}));
+        return this.file
+            .getBytes(pos, pos + size)
+            .then((bytes) => new Blob([bytes.u8], { type: 'image/jpeg' }));
     }
 
     getTileOffsets() {
@@ -103,23 +104,22 @@ class ZoomLevel {
         const count = this.get(ZoomLevel.m_count);
         const tagval = this.get(ZoomLevel.m_size);
         if (count < 3) {
-            return Promise.resolve([tagval | 0, tagval / 0x100000000 | 0].slice(0, count));
+            return Promise.resolve([tagval | 0, (tagval / 0x100000000) | 0].slice(0, count));
         }
         return this.getUintArray(tagval, count, 4);
     }
 
     getUintArray(pos, count, bytesPerNum) {
-        return this.file.getBytes(pos, pos + bytesPerNum * count)
-            .then(bytes => {
-                let res = new Array(bytes.length / bytesPerNum);
-                for (var i = 0; i < res.length; i++)
-                    res[i] = bytes.readLittleEndian(i * bytesPerNum, bytesPerNum);
-                return res;
-            });
+        return this.file.getBytes(pos, pos + bytesPerNum * count).then((bytes) => {
+            let res = new Array(bytes.length / bytesPerNum);
+            for (let i = 0; i < res.length; i++)
+                res[i] = bytes.readLittleEndian(i * bytesPerNum, bytesPerNum);
+            return res;
+        });
     }
 
     static transpose(arrarr) {
-        return arrarr[0].map((val, i) => arrarr.map(arr => arr[i]));
+        return arrarr[0].map((val, i) => arrarr.map((arr) => arr[i]));
     }
 }
 
@@ -132,7 +132,8 @@ class Bytes {
 
     readLittleEndian(pos, bytes) {
         // Warning: javascript cannot store integers larger than 52 bits
-        let multiplier = 1, res = 0;
+        let multiplier = 1,
+            res = 0;
         for (let i = pos; i < pos + bytes; i++) {
             res += multiplier * (this.u8[i] | 0);
             multiplier *= 0x100;
@@ -141,12 +142,16 @@ class Bytes {
     }
 
     short(pos) {
-        return this.u8[pos] | this.u8[pos + 1] << 8;
+        return this.u8[pos] | (this.u8[pos + 1] << 8);
     }
 
     int(pos) {
-        return this.u8[pos] | this.u8[pos + 1] << 8 |
-            this.u8[pos + 2] << 16 | this.u8[pos + 3] << 24;
+        return (
+            this.u8[pos] |
+            (this.u8[pos + 1] << 8) |
+            (this.u8[pos + 2] << 16) |
+            (this.u8[pos + 3] << 24)
+        );
     }
 
     long(pos) {
@@ -161,7 +166,7 @@ export class LocalFile {
 
     getBytes(begin, end) {
         return new Promise((accept, reject) => {
-            let r = new FileReader;
+            let r = new FileReader();
             r.onload = (evt) => accept(new Bytes(r.result));
             r.onerror = (evt) => reject(r.error);
             r.readAsArrayBuffer(this.file.slice(begin, end));

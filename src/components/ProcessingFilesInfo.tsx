@@ -1,7 +1,7 @@
-import { Typography } from "@material-ui/core";
-import { CircularProgressWithPercentage } from "./CircularProgressWithPercentage";
-import React from "react";
-import { Logo } from "./Logo";
+import React from 'react';
+import { Typography } from '@material-ui/core';
+import { CircularProgressWithPercentage } from './CircularProgressWithPercentage';
+import { Logo } from './Logo';
 
 interface ProcessingFilesInfoProps {
     amountOfFilesProcessed: number;
@@ -9,29 +9,23 @@ interface ProcessingFilesInfoProps {
 }
 
 export const ProcessingFilesInfo: React.FC<ProcessingFilesInfoProps> = ({
-                                                                            amountOfFilesDownloaded,
-                                                                            amountOfFilesProcessed
-                                                                        }) => {
+    amountOfFilesDownloaded,
+    amountOfFilesProcessed,
+}) => {
     const getPercentage = () => {
         if (amountOfFilesProcessed === 0) {
-            return 0
+            return 0;
         } else {
-            return Math.floor((amountOfFilesProcessed / amountOfFilesDownloaded) * 100)
+            return Math.floor((amountOfFilesProcessed / amountOfFilesDownloaded) * 100);
         }
-    }
+    };
     return (
         <div className="container">
-            <Logo/>
-            <Typography variant="h6">
-                Файлы обрабатываються...
-            </Typography>
-            <Typography variant="h6">
-                Это может занять какое-то время.
-            </Typography>
-            <Typography variant="h6" >
-                ! Не закрывайте это окно !
-            </Typography>
-            <CircularProgressWithPercentage percentCompleted={getPercentage()}/>
+            <Logo />
+            <Typography variant="h6">Файлы обрабатываються...</Typography>
+            <Typography variant="h6">Это может занять какое-то время.</Typography>
+            <Typography variant="h6">! Не закрывайте это окно !</Typography>
+            <CircularProgressWithPercentage percentCompleted={getPercentage()} />
             <Typography variant="subtitle2">
                 {`Количество скачанных файлов: ${amountOfFilesDownloaded}`}
             </Typography>
@@ -39,5 +33,5 @@ export const ProcessingFilesInfo: React.FC<ProcessingFilesInfoProps> = ({
                 {`Количество обработанных файлов: ${amountOfFilesProcessed}`}
             </Typography>
         </div>
-    )
-}
+    );
+};

@@ -1,15 +1,18 @@
-const path = require('path')
+const path = require('path');
 
 module.exports = {
     webpack: {
-        configure: (webpackConfig, {env, paths}) => {
+        configure: (webpackConfig, { env, paths }) => {
             return {
                 ...webpackConfig,
                 entry: {
-                    main: [env === 'development' &&
-                    require.resolve('react-dev-utils/webpackHotDevClient'),paths.appIndexJs].filter(Boolean),
+                    main: [
+                        env === 'development' &&
+                            require.resolve('react-dev-utils/webpackHotDevClient'),
+                        paths.appIndexJs,
+                    ].filter(Boolean),
                     content: './src/chrome/content.ts',
-                    background: './src/chrome/background.ts'
+                    background: './src/chrome/background.ts',
                 },
                 output: {
                     ...webpackConfig.output,
@@ -18,8 +21,8 @@ module.exports = {
                 optimization: {
                     ...webpackConfig.optimization,
                     runtimeChunk: false,
-                }
-            }
+                },
+            };
         },
-    }
-}
+    },
+};

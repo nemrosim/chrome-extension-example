@@ -1,23 +1,27 @@
-import { Box, Button, Typography } from "@material-ui/core";
-import React, { useContext } from "react";
-import * as Utils from "../utils/chrome";
-import { useSnackbar } from "notistack";
-import { ImageData } from "../types";
-import { AppContext } from "./AppContextProvider";
+import React from 'react';
+import { Box, Button, Typography } from '@material-ui/core';
+import { useSnackbar } from 'notistack';
+import { ImageData } from '../types';
+import { useUrlContext } from '../components';
+
+import * as Utils from '../utils/chrome';
 
 interface GetUrlsFromDOMButtonProps {
-    type: 'jpeg' | 'zif',
-    text: string
+    type: 'jpeg' | 'zif';
+    text: string;
 }
 
-export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({type, text}) => {
-    const {enqueueSnackbar} = useSnackbar();
-    const {isRgada, setRgadaImageUrls, setIrbisPdfUrl} = useContext(AppContext);
+export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({ type, text }) => {
+    const { enqueueSnackbar } = useSnackbar();
+    const { isRgada, setRgadaImageUrls, setIrbisPdfUrl } = useUrlContext();
 
-    const host = isRgada ? 'rgada' : 'irbis'
+    const host = isRgada ? 'rgada' : 'irbis';
 
     const onClickHandler = () => {
+        console.log('0. OnClick', { host, type, text });
         Utils.getUrlsFromTheDOMHandler(host, type, (response) => {
+            console.log('1. Utils.getUrlsFromTheDOMHandler. Response', response);
+
             if (response && response instanceof Array && response.length > 0) {
                 const temp = response[0].split('/');
                 if (temp[temp.length - 1].split('.')[1] === 'jpg') {
@@ -30,8 +34,8 @@ export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({type,
                             url,
                             size: 'large',
                             format: 'jpeg',
-                        } as ImageData
-                    })
+                        } as ImageData;
+                    });
                     setRgadaImageUrls(result);
                 } else {
                     enqueueSnackbar('Готово.', {
@@ -43,8 +47,8 @@ export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({type,
                             url,
                             size: 'large',
                             format: 'zif',
-                        } as ImageData
-                    })
+                        } as ImageData;
+                    });
                     setRgadaImageUrls(result);
                 }
             }
@@ -56,25 +60,22 @@ export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({type,
 
                 setIrbisPdfUrl(response);
             }
-        })
-    }
+        });
+    };
     return (
         <>
             <Box m={1}>
-
-                <Typography variant="body1" align='center' color='secondary'>
-                    Некоторые изображения занимают по 16 мегабай.
-                    Если документ состоит из 170 изабражений
-                    общий размер может составить 2 Гигабайта
-                    Учитывайте это! Освободите место на диске
-                    если требуется
+                <Typography variant="body1" align="center" color="secondary">
+                    Некоторые изображения занимают по 16 мегабай. Если документ состоит из 170
+                    изображений общий размер может составить 2 Гигабайта Учитывайте это! Освободите
+                    место на диске если требуется
                 </Typography>
             </Box>
             <Box m={4}>
-                <Button onClick={onClickHandler} variant='contained' color="primary">
+                <Button onClick={onClickHandler} variant="contained" color="primary">
                     {text}
                 </Button>
             </Box>
         </>
-    )
-}
+    );
+};

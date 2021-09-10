@@ -3,7 +3,8 @@ module.exports = {
         browser: true,
         es6: true,
         node: true,
-        webextensions: true
+        webextensions: true,
+        jest: true,
     },
     extends: [
         'eslint:recommended',
@@ -27,7 +28,7 @@ module.exports = {
          https://github.com/typescript-eslint/typescript-eslint/issues/2621
          */
         'no-unused-vars': 'off',
-        '@typescript-eslint/no-unused-vars': 'error',
+        '@typescript-eslint/no-unused-vars': 'warn',
         // -------
         'react-hooks/exhaustive-deps': 'error',
         'react/prop-types': 'off',
