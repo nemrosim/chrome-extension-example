@@ -18,10 +18,8 @@ export const GetUrlsFromDOMButton: React.FC<GetUrlsFromDOMButtonProps> = ({ type
     const host = isRgada ? 'rgada' : 'irbis';
 
     const onClickHandler = () => {
-        console.log('0. OnClick', { host, type, text });
+        // @ts-ignore
         Utils.getUrlsFromTheDOMHandler(host, type, (response) => {
-            console.log('1. Utils.getUrlsFromTheDOMHandler. Response', response);
-
             if (response && response instanceof Array && response.length > 0) {
                 const temp = response[0].split('/');
                 if (temp[temp.length - 1].split('.')[1] === 'jpg') {

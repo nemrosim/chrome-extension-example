@@ -2,26 +2,26 @@
 import React, { Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react';
 import { Box, Button, Link, TextField, Typography } from '@material-ui/core';
 import {
+    createRequestsIntoPromiseAll,
     convertJpegsResponse,
     convertZifFilesToJPEGs,
     createZipFolderWithJPEGs,
     getDownloadLinkProps,
-    splitArrayToChunks,
-    downloadFiles,
     logError,
+    logInfo,
+    logSuccess,
 } from './utils';
 import {
     CircularProgressWithPercentage,
-    GenerateZipInfo,
-    ProcessingFilesInfo,
-    GetUrlsFromDOMButton,
     DownloadLinks,
+    GenerateZipInfo,
+    GetUrlsFromDOMButton,
+    ProcessingFilesInfo,
 } from './components';
 
 import { useSnackbar } from 'notistack';
 import { useLocalStorageContext, useProgressContext, useUrlContext } from './components/contexts';
 import { ImageData, ImageFormat } from './types';
-import { logInfo, logSuccess } from './utils';
 import axios, { AxiosResponse } from 'axios';
 
 interface DOW {
@@ -30,20 +30,69 @@ interface DOW {
     setter: Dispatch<SetStateAction<number>>;
 }
 
+function arrayBufferToBase64(buffer) {
+    let binary = '';
+    let bytes = new Uint8Array(buffer);
+    let len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+}
+
+function base64ToArrayBuffer(base64) {
+    let binary_string = window.atob(base64);
+    let len = binary_string.length;
+    let bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
 const ChromeStorage = chrome.storage.local;
 
 const saveToLocalStorage = (key, data) => {
-    logInfo('Saving to local storage');
-    chrome.storage.local.set({ [key]: data }, () => {
-        logSuccess(`Data is saved to local storage. Key: ${key}`);
+    return new Promise((resolve, reject) => {
+        if (key && data) {
+            logInfo('Saving to local storage...');
+            console.log(data);
+
+            try {
+                const setOptions = { [key]: data };
+                console.log('SET OPTIONS', setOptions);
+                chrome.storage.local.set(setOptions, () => {
+                    logSuccess(`Data is saved to local storage. Key: ${key}`);
+                    resolve(true);
+                });
+            } catch (error) {
+                console.error('ERROR', error);
+                reject(error);
+            }
+        } else {
+            logError('Cant save local storage. Key is undefined');
+            reject('Key OR data is undefined');
+        }
     });
 };
 
-const getFromLocalStorage = (key) => {
-    logInfo(`Getting from local storage. Key: ${key}`);
+const getFromLocalStorage = (key): Promise<unknown> => {
+    return new Promise((resolve, reject) => {
+        if (key) {
+            logInfo(`Getting from local storage. Key: ${key}`);
 
-    chrome.storage.local.get([key], (items) => {
-        console.log('6. [Chrome.storage.get] Value currently is ', items);
+            try {
+                chrome.storage.local.get(key, (items) => {
+                    resolve(items[key]);
+                });
+            } catch (e) {
+                console.error('ERROR', e);
+                reject(e);
+            }
+        } else {
+            logError('Cant remove from storage. Key is undefined');
+            reject('Key is undefined');
+        }
     });
 };
 
@@ -52,7 +101,7 @@ const removeFromLocalStorage = async ({ key }: { key: string }) => {
         if (key) {
             logInfo(`Removing from local storage. Key: ${key}`);
 
-            chrome.storage.local.remove([key], () => {
+            chrome.storage.local.remove(key, () => {
                 logSuccess('Storage is cleared');
                 resolve(true);
             });
@@ -77,6 +126,8 @@ export const App = () => {
         isImagesDownloading,
         setIsImagesDownloading,
     } = useProgressContext();
+
+    const LOCAL_STORAGE_KEY = 'KEY';
 
     const {
         isDataSetToLocalStorage,
@@ -136,89 +187,53 @@ export const App = () => {
     // http://rgada.info/kueh/1/381_1_47/0001.zif
 
     const downloadDataByChunks = async ({ urls, imageFormat, setter }: DOW) => {
-        await removeFromLocalStorage({ key: currentUrl });
+        /**
+         * [PromiseAll, PromiseAll, PromiseAll]
+         */
+        const promiseAllList = await createRequestsIntoPromiseAll({
+            imageDataList: urls,
+            format: imageFormat,
+            setter,
+        });
 
-        if (currentUrlLocalStorageData) {
-            console.log('Storage not empty', currentUrlLocalStorageData);
-            const a = urls.filter((imageData) => {
-                const found = currentUrlLocalStorageData.downloadedFiles.find((file) => {
-                    return file.config.url === imageData.url;
-                });
+        // Reading in sequence
+        for (const promiseAll of promiseAllList) {
+            const contents = await promiseAll;
 
-                console.log('found', found);
+            // Update local storage
+            const a = await getFromLocalStorage(LOCAL_STORAGE_KEY);
+            // @ts-ignore
+            console.log('From storage', a.length);
+            console.log('Downloaded', contents.length);
 
-                if (found) {
-                    return true;
-                } else {
-                    return false;
-                }
+            const imagesFromResponse = contents.map((response) => {
+                // @ts-ignore
+                return { url: response.config.url, data: response.data };
             });
 
-            console.log('AAAA', a);
+            const imagesFromStorage = Array.isArray(a) ? a : [];
+
+            const converted = imagesFromResponse.map((e) => ({
+                url: e.url,
+                /**
+                 * We NEED to convert ArrayBuffer object to Base64 so that we could save data to JSON.
+                 */
+                data: arrayBufferToBase64(e.data),
+            }));
+
+            imagesFromStorage.forEach((elem) => {
+                converted.push(elem);
+            });
+
+            // @ts-ignore
+            const b = await saveToLocalStorage(
+                LOCAL_STORAGE_KEY,
+
+                converted,
+            );
         }
 
-        logInfo('---URLS---');
-        console.log('URL', urls);
-
-        const imageUrlChunks = splitArrayToChunks(urls, 2);
-
-        logInfo('--- CHUNKS ---');
-        console.log('Image URL chunks', imageUrlChunks);
-
-        const result = [];
-        for (const urls of imageUrlChunks) {
-            console.log('urls', urls);
-            const downloadedFiles = await downloadFiles({
-                imageUrls: urls,
-                format: imageFormat,
-                setter,
-            });
-
-            console.log('downloaded files', downloadedFiles);
-
-            saveToLocalStorage(currentUrl, downloadedFiles);
-
-            chrome.storage.local.get([currentUrl], (result) => {
-                logInfo('--> SET');
-                console.log('[RESULT]', result[currentUrl]);
-                if (result[currentUrl]) {
-                    logSuccess('4. IF');
-
-                    const a = JSON.parse(result[currentUrl]);
-
-                    console.log('ZZZ', a);
-
-                    const tempCopy = [...a.downloadedFiles];
-
-                    console.log('TEMP', tempCopy);
-
-                    const res = [...tempCopy, ...downloadedFiles];
-
-                    console.log('ARRAY RESULT', res);
-
-                    const value = {
-                        currentUrl,
-                        rgadaImageUrls,
-                        downloadedFiles: [...tempCopy, ...downloadedFiles],
-                        imageFormat,
-                    };
-
-                    JSON.stringify(value);
-
-                    chrome.storage.local.set({ [currentUrl]: JSON.stringify(value) }, () => {
-                        logSuccess('Data is set to local storage');
-                    });
-                } else {
-                    logInfo('Storage is empty');
-                    // chrome.storage
-                    //     .local.set({[currentUrl]: JSON.stringify(value)}, () => {
-                    //     logSuccess("Data is set to local storage");
-                    // });
-                }
-            });
-            result.push(downloadedFiles);
-        }
-        return result;
+        logSuccess('AFTER FOR');
     };
 
     const processChunk = async (temp) => {
@@ -249,13 +264,10 @@ export const App = () => {
     const testClick = () => {
         ChromeStorage.get(['one'], (items) => {
             logSuccess('Data was get');
-            console.log(items['one']);
         });
         axios
             .get('http://rgada.info/kueh/1/381_1_47/0001.zif', { responseType: 'blob' })
             .then((response) => {
-                console.log('RESPONSE', response);
-
                 const res = {
                     ...response,
                     data: URL.createObjectURL(response.data),
@@ -268,42 +280,43 @@ export const App = () => {
     };
 
     const downloadAndSaveAllFiles = async () => {
-        console.log('[Function] downloadAndSaveAllFiles');
         setIsImagesDownloading(true);
         setAmountOfFilesDownloaded(0);
         setAmountOfFilesProcessed(0);
 
         const imageFormat = rgadaImageUrls[0].format;
-        const imageUrls = rgadaImageUrls.slice(0, 2);
 
         const downloadedFiles = await downloadDataByChunks({
             imageFormat,
-            urls: imageUrls,
+            urls: rgadaImageUrls,
             setter: setTotalPercent,
         });
 
-        console.log('5. Downloaded files', downloadedFiles);
-        console.log('5. Current URL', currentUrl);
+        /**
+         * CHECK this
+         */
+        // const data = await getFromLocalStorage(currentUrl);
 
-        getFromLocalStorage(currentUrl);
+        // console.log('==> Data from local storage', data);
 
+        // @ts-ignore
         setAmountOfFilesDownloaded(downloadedFiles.length);
         setIsImagesDownloading(false);
 
-        console.log('7. Image format', imageFormat);
+        if (imageFormat === ImageFormat.zif) {
+            setIsGeneratingZip(true);
 
-        if (imageFormat === 'zif') {
             const temp = [];
             let i,
                 j,
                 chunk = 34;
+            // @ts-ignore
             for (i = 0, j = downloadedFiles.length; i < j; i += chunk) {
+                // @ts-ignore
                 temp.push(downloadedFiles.slice(i, i + chunk));
             }
 
             const convertedJPEGs = await processChunk(temp);
-
-            setIsGeneratingZip(true);
 
             await processZipChunk(convertedJPEGs);
 
@@ -318,21 +331,13 @@ export const App = () => {
             setIsGeneratingZip(false);
         }
 
-        if (imageFormat === 'jpeg') {
-            console.log('8. JPEG block', downloadedFiles);
-            const convertedJPEGs = convertJpegsResponse(downloadedFiles[0]);
-
-            console.log('9. Converted jpegs', convertedJPEGs);
-
+        if (imageFormat === ImageFormat.jpeg) {
+            // @ts-ignore
+            const convertedJPEGs = convertJpegsResponse(downloadedFiles);
             setIsGeneratingZip(true);
 
             const zippedJPEGs = await createZipFolderWithJPEGs(convertedJPEGs, false, archiveName);
-
-            console.log('10. ZippedJPEGs', zippedJPEGs);
-
             const anchorProps = getDownloadLinkProps(zippedJPEGs, archiveName);
-
-            console.log('11. Anchor props', anchorProps);
 
             enqueueSnackbar('Теперь Вы можете скачать файлы нажав на ссылку выше', {
                 variant: 'info',
@@ -354,8 +359,6 @@ export const App = () => {
     const a =
         rgadaImageUrls?.length && rgadaImageUrls[0].format === 'zif' && isProcessingDownloadedFiles;
 
-    console.log('IS GENERATING ZIP', isGeneratingZip);
-
     if (a) {
         return (
             <ProcessingFilesInfo
@@ -366,7 +369,6 @@ export const App = () => {
     }
 
     if (isGeneratingZip) {
-        console.log('RENDER ZIP COMPONENT');
         return <GenerateZipInfo anchors={anchors} />;
     }
 
@@ -397,8 +399,6 @@ export const App = () => {
         !isGeneratingZip &&
         !isImagesDownloading &&
         !isUserClickedReady;
-
-    console.log('Is images downloading', isImagesDownloading);
 
     if (isImagesDownloading || isGeneratingZip) {
         return <CircularProgressWithPercentage percentCompleted={totalPercent} />;

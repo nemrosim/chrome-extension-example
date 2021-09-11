@@ -1,6 +1,9 @@
 import { AxiosResponse } from 'axios';
 
-export type ImageFormat = 'jpeg' | 'zif';
+export enum ImageFormat {
+    jpeg = 'jpeg',
+    zif = 'zif',
+}
 export type SizeType = 'original' | 'large';
 export type HostType = 'rgada' | 'irbis';
 

@@ -1,6 +1,8 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Dispatch, SetStateAction } from 'react';
 import { ImageFormat, ImageData } from '../types';
+import { rejects } from 'assert';
+import { splitArrayIntoChunks } from './utils';
 
 const onDownloadAxiosProgressHandler = ({
     progressEvent,
@@ -25,29 +27,37 @@ const onDownloadAxiosProgressHandler = ({
 
 interface DownloadFilesProps {
     format: ImageFormat;
-    imageUrls: Array<ImageData>;
+    imageDataList: Array<ImageData>;
     setter: Dispatch<SetStateAction<number>>;
 }
 
-export const downloadFiles = async ({ imageUrls, format, setter }: DownloadFilesProps) => {
-    const axiosPromises: Array<Promise<any>> = [];
-    const listOfPercentages: Array<number> = [];
+export const createRequestsIntoPromiseAll = async ({
+    imageDataList,
+    format,
+    setter,
+}: DownloadFilesProps) => {
+    if (imageDataList?.length) {
+        const listOfPercentages: Array<number> = [];
 
-    imageUrls &&
-        imageUrls.forEach((zifUrl, index) => {
-            const config = {
+        const axiosInstanceList = imageDataList.map(({ url }, index) =>
+            axios.get(url, {
                 responseType: format === 'jpeg' ? 'arraybuffer' : 'blob',
                 onDownloadProgress: (progressEvent) =>
                     onDownloadAxiosProgressHandler({
                         progressEvent,
                         listOfPercentages,
                         index,
-                        amountOfUrls: imageUrls.length,
+                        amountOfUrls: imageDataList.length,
                         setter,
                     }),
-            } as AxiosRequestConfig;
-            axiosPromises.push(axios.get(zifUrl.url, config));
-        });
+            }),
+        );
 
-    return await Promise.all(axiosPromises);
+        /**
+         * [ [axios1, axios2, axios3], [axios4,axios5,axios6] ]
+         */
+        const chunks = splitArrayIntoChunks(axiosInstanceList, 5);
+
+        return chunks.map((axiosInstanceListChunk) => Promise.all(axiosInstanceListChunk));
+    }
 };

@@ -13,7 +13,6 @@ chrome.runtime.sendMessage({
  * Listen for messages from the popup.
  */
 chrome.runtime.onMessage.addListener((msg, sender, response) => {
-    console.log('MESSAGES');
     // First, validate the message's structure.
     if (msg.from === APP_NAME) {
         if (msg.host === MessageHosts.RGADA) {

@@ -5,7 +5,6 @@ import { Logo } from './Logo';
 export const GenerateZipInfo: React.FC<{ anchors: Array<any> }> = ({ anchors }) => {
     return (
         <div className="container">
-            <Logo />
             <Typography variant="h6">Последний штрих...</Typography>
             <Typography variant="subtitle2">Создаём архив с изображениями...</Typography>
             <Box position="relative" display="inline-flex" m={2}>

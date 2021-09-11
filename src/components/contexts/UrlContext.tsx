@@ -61,18 +61,6 @@ export const UrlContextProvider: FC = ({ children }) => {
         }
     }, [currentUrl, setIsIrbis, setIsRgada]);
 
-    console.log('Url Context data', {
-        currentUrl,
-        isIrbis,
-        isRgada,
-
-        rgadaImageUrls: rgadaImageUrls,
-        setRgadaImageUrls: setRgadaImageUrls,
-
-        irbisPdfUrl: irbisPdfUrl,
-        setIrbisPdfUrl: setIrbisPdfUrl,
-    });
-
     return (
         <UrlContext.Provider
             value={{
