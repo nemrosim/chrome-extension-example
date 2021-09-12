@@ -2,7 +2,7 @@
 import React, { Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react';
 import { Box, Button, Link, TextField, Typography } from '@material-ui/core';
 import {
-    createRequestsIntoPromiseAll,
+    createRequestsList,
     convertJpegsResponse,
     convertZifFilesToJPEGs,
     createZipFolderWithJPEGs,
@@ -10,22 +10,23 @@ import {
     logError,
     logInfo,
     logSuccess,
+    splitArrayIntoChunks,
 } from './utils';
 import {
-    CircularProgressWithPercentage,
-    DownloadLinks,
+    CircularProgressWithPercentagePage,
     GenerateZipInfo,
     GetUrlsFromDOMButton,
-    ProcessingFilesInfo,
 } from './components';
 
 import { useSnackbar } from 'notistack';
 import { useLocalStorageContext, useProgressContext, useUrlContext } from './components/contexts';
 import { ImageData, ImageFormat } from './types';
 import axios, { AxiosResponse } from 'axios';
+import { ProcessingFilesInfoPage, DownloadLinksPage } from './pages';
+import { rejects } from 'assert';
 
-interface DOW {
-    urls: Array<ImageData>;
+interface DownloadDataByChunksProps {
+    requestUrls: Array<string>;
     imageFormat: ImageFormat;
     setter: Dispatch<SetStateAction<number>>;
 }
@@ -52,16 +53,13 @@ function base64ToArrayBuffer(base64) {
 
 const ChromeStorage = chrome.storage.local;
 
-const saveToLocalStorage = (key, data) => {
+const saveToLocalStorage = (key, data): Promise<boolean> => {
     return new Promise((resolve, reject) => {
         if (key && data) {
             logInfo('Saving to local storage...');
-            console.log(data);
 
             try {
-                const setOptions = { [key]: data };
-                console.log('SET OPTIONS', setOptions);
-                chrome.storage.local.set(setOptions, () => {
+                chrome.storage.local.set({ [key]: data }, () => {
                     logSuccess(`Data is saved to local storage. Key: ${key}`);
                     resolve(true);
                 });
@@ -76,7 +74,7 @@ const saveToLocalStorage = (key, data) => {
     });
 };
 
-const getFromLocalStorage = (key): Promise<unknown> => {
+const getFromLocalStorage = (key: string): Promise<{ url: string; data: string } | undefined> => {
     return new Promise((resolve, reject) => {
         if (key) {
             logInfo(`Getting from local storage. Key: ${key}`);
@@ -96,7 +94,31 @@ const getFromLocalStorage = (key): Promise<unknown> => {
     });
 };
 
-const removeFromLocalStorage = async ({ key }: { key: string }) => {
+const checkLocalStorage = async (keys: Array<string>): Promise<Array<string>> => {
+    const checkUrls: Array<string> = [];
+    let error;
+    try {
+        for (const key of keys) {
+            const a = await getFromLocalStorage(key);
+            if (a) {
+                checkUrls.push(a.url);
+            }
+        }
+    } catch (e) {
+        console.log('ERROR', e);
+        error = e;
+    }
+
+    return new Promise((resolve, rejects) => {
+        if (error) {
+            rejects(error);
+        } else {
+            resolve(checkUrls);
+        }
+    });
+};
+
+const removeFromLocalStorage = async (key: string): Promise<boolean> => {
     return new Promise((resolve, reject) => {
         if (key) {
             logInfo(`Removing from local storage. Key: ${key}`);
@@ -186,54 +208,85 @@ export const App = () => {
 
     // http://rgada.info/kueh/1/381_1_47/0001.zif
 
-    const downloadDataByChunks = async ({ urls, imageFormat, setter }: DOW) => {
-        /**
-         * [PromiseAll, PromiseAll, PromiseAll]
-         */
-        const promiseAllList = await createRequestsIntoPromiseAll({
-            imageDataList: urls,
-            format: imageFormat,
+    const downloadDataByChunks = async ({
+        requestUrls,
+        imageFormat,
+        setter,
+    }: DownloadDataByChunksProps) => {
+        const imagesAreInLocalStorage = await checkLocalStorage(requestUrls);
+
+        const notDownloadedImages = imagesAreInLocalStorage ? [] : requestUrls;
+
+        imagesAreInLocalStorage &&
+            requestUrls.forEach((requestUrl) => {
+                const found = imagesAreInLocalStorage.find((url) => url === requestUrl);
+                if (!found) {
+                    notDownloadedImages.push(requestUrl);
+                }
+            });
+
+        console.log('IMAGES IN', notDownloadedImages);
+
+        const requestsList = createRequestsList({
+            responseType: imageFormat === 'jpeg' ? 'arraybuffer' : 'blob',
+            requestUrls: notDownloadedImages,
             setter,
         });
 
-        // Reading in sequence
-        for (const promiseAll of promiseAllList) {
-            const contents = await promiseAll;
+        const requestChunks = splitArrayIntoChunks({ array: requestsList, chunk_size: 5 }).map(
+            (axiosInstanceListChunk) => Promise.all(axiosInstanceListChunk),
+        );
 
-            // Update local storage
-            const a = await getFromLocalStorage(LOCAL_STORAGE_KEY);
-            // @ts-ignore
-            console.log('From storage', a.length);
-            console.log('Downloaded', contents.length);
+        /*
+        Download chunks and save to local storage
+         */
+        for (const requests of requestChunks) {
+            const responses = await requests;
 
-            const imagesFromResponse = contents.map((response) => {
-                // @ts-ignore
-                return { url: response.config.url, data: response.data };
-            });
+            const imagesFromResponse = responses.map((response) => ({
+                url: response.config.url,
+                data: response.data,
+            }));
 
-            const imagesFromStorage = Array.isArray(a) ? a : [];
-
-            const converted = imagesFromResponse.map((e) => ({
-                url: e.url,
+            const base64ImageList = imagesFromResponse.map((image) => ({
+                url: image.url,
                 /**
                  * We NEED to convert ArrayBuffer object to Base64 so that we could save data to JSON.
                  */
-                data: arrayBufferToBase64(e.data),
+                data: arrayBufferToBase64(image.data),
             }));
 
-            imagesFromStorage.forEach((elem) => {
-                converted.push(elem);
-            });
-
-            // @ts-ignore
-            const b = await saveToLocalStorage(
-                LOCAL_STORAGE_KEY,
-
-                converted,
-            );
+            console.time('Save to local storage');
+            for (const image of base64ImageList) {
+                console.log('Saving image url', image.url);
+                await saveToLocalStorage(image.url, image);
+            }
+            console.timeEnd('Save to local storage');
         }
 
+        const result = [];
+        for (const key of requestUrls) {
+            const image = await getFromLocalStorage(key);
+
+            const converted = base64ToArrayBuffer(image.data);
+
+            console.log('IMAGE URL', image.url);
+
+            result.push({
+                url: image.url,
+                data: converted,
+            });
+        }
+
+        chrome.storage.local.clear(() => {
+            console.log('Storage cleared');
+        });
+
         logSuccess('AFTER FOR');
+
+        console.log('RESULT', result);
+
+        return result;
     };
 
     const processChunk = async (temp) => {
@@ -288,18 +341,10 @@ export const App = () => {
 
         const downloadedFiles = await downloadDataByChunks({
             imageFormat,
-            urls: rgadaImageUrls,
+            requestUrls: rgadaImageUrls.map((e) => e.url),
             setter: setTotalPercent,
         });
 
-        /**
-         * CHECK this
-         */
-        // const data = await getFromLocalStorage(currentUrl);
-
-        // console.log('==> Data from local storage', data);
-
-        // @ts-ignore
         setAmountOfFilesDownloaded(downloadedFiles.length);
         setIsImagesDownloading(false);
 
@@ -332,7 +377,6 @@ export const App = () => {
         }
 
         if (imageFormat === ImageFormat.jpeg) {
-            // @ts-ignore
             const convertedJPEGs = convertJpegsResponse(downloadedFiles);
             setIsGeneratingZip(true);
 
@@ -359,9 +403,15 @@ export const App = () => {
     const a =
         rgadaImageUrls?.length && rgadaImageUrls[0].format === 'zif' && isProcessingDownloadedFiles;
 
+    const shouldShowInputField = rgadaImageUrls && !isUserClickedReady;
+
+    const shouldShowDownloadFiles = rgadaImageUrls && archiveName && isUserClickedReady;
+
+    const shouldShowLink = downloadLinkForDomImageUrls && !isUserClickedReady;
+
     if (a) {
         return (
-            <ProcessingFilesInfo
+            <ProcessingFilesInfoPage
                 amountOfFilesDownloaded={amountOfFilesDownloaded}
                 amountOfFilesProcessed={amountOfFilesProcessed}
             />
@@ -384,24 +434,8 @@ export const App = () => {
         );
     }
 
-    const shouldShowInputField =
-        !isImagesDownloading && !isGeneratingZip && rgadaImageUrls && !isUserClickedReady;
-
-    const shouldShowDownloadFiles =
-        !isImagesDownloading &&
-        !isGeneratingZip &&
-        rgadaImageUrls &&
-        archiveName &&
-        isUserClickedReady;
-
-    const shouldShowLink =
-        downloadLinkForDomImageUrls &&
-        !isGeneratingZip &&
-        !isImagesDownloading &&
-        !isUserClickedReady;
-
     if (isImagesDownloading || isGeneratingZip) {
-        return <CircularProgressWithPercentage percentCompleted={totalPercent} />;
+        return <CircularProgressWithPercentagePage percentCompleted={totalPercent} />;
     }
 
     if (!isImagesDownloading && !rgadaImageUrls) {
@@ -457,14 +491,22 @@ export const App = () => {
     }
 
     if (shouldShowLink) {
-        return <DownloadLinks link={downloadLinkForDomImageUrls} />;
+        return (
+            <DownloadLinksPage
+                download={downloadLinkForDomImageUrls.download}
+                href={downloadLinkForDomImageUrls.href}
+                text="Загрузить ссылки на изображения"
+            />
+        );
     }
 
     if (downloadLinkPropsForProcessedFiles && !isUserClickedReady) {
         return (
-            <Box mt={4}>
-                <Link {...downloadLinkPropsForProcessedFiles}>Загрузить ссылки на изображения</Link>
-            </Box>
+            <DownloadLinksPage
+                download={downloadLinkPropsForProcessedFiles.download}
+                href={downloadLinkPropsForProcessedFiles.href}
+                text="Загрузить ссылки на изображения"
+            />
         );
     }
 

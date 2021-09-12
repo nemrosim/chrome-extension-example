@@ -1,14 +1,13 @@
 import React from 'react';
 import { Typography } from '@material-ui/core';
-import { CircularProgressWithPercentage } from './CircularProgressWithPercentage';
-import { Logo } from './Logo';
+import { CircularProgressWithPercentagePage } from '../components';
 
 interface ProcessingFilesInfoProps {
     amountOfFilesProcessed: number;
     amountOfFilesDownloaded: number;
 }
 
-export const ProcessingFilesInfo: React.FC<ProcessingFilesInfoProps> = ({
+export const ProcessingFilesInfoPage: React.FC<ProcessingFilesInfoProps> = ({
     amountOfFilesDownloaded,
     amountOfFilesProcessed,
 }) => {
@@ -24,7 +23,7 @@ export const ProcessingFilesInfo: React.FC<ProcessingFilesInfoProps> = ({
             <Typography variant="h6">Файлы обрабатываються...</Typography>
             <Typography variant="h6">Это может занять какое-то время.</Typography>
             <Typography variant="h6">! Не закрывайте это окно !</Typography>
-            <CircularProgressWithPercentage percentCompleted={getPercentage()} />
+            <CircularProgressWithPercentagePage percentCompleted={getPercentage()} />
             <Typography variant="subtitle2">
                 {`Количество скачанных файлов: ${amountOfFilesDownloaded}`}
             </Typography>

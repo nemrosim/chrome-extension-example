@@ -2,7 +2,11 @@ import { Box, Typography } from '@material-ui/core';
 import React from 'react';
 import { useUrlContext } from '../components';
 
-export const ErrorTypography: React.FC<{ text: string }> = ({ text }) => {
+interface ErrorTypographyProps {
+    text: string;
+}
+
+export const ErrorTypography: React.FC<ErrorTypographyProps> = ({ text }) => {
     return (
         <div className="container">
             <Box m={4}>

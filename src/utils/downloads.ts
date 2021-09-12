@@ -1,21 +1,20 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { Dispatch, SetStateAction } from 'react';
-import { ImageFormat, ImageData } from '../types';
-import { rejects } from 'assert';
-import { splitArrayIntoChunks } from './utils';
 
-const onDownloadAxiosProgressHandler = ({
-    progressEvent,
-    index,
-    amountOfUrls,
-    listOfPercentages,
-    setter,
-}: {
+type HandleOnDownloadProgress = (props: {
     progressEvent: ProgressEvent;
     index: number;
     amountOfUrls: number;
     listOfPercentages: Array<number>;
     setter: Dispatch<SetStateAction<number>>;
+}) => void;
+
+const handleOnDownloadProgress: HandleOnDownloadProgress = ({
+    progressEvent,
+    index,
+    amountOfUrls,
+    listOfPercentages,
+    setter,
 }) => {
     let currentPercentage = Math.floor((progressEvent.loaded * 100) / progressEvent.total);
     listOfPercentages[index] = currentPercentage || 0;
@@ -25,39 +24,29 @@ const onDownloadAxiosProgressHandler = ({
     setter(Math.floor(totalPercentage / amountOfUrls));
 };
 
-interface DownloadFilesProps {
-    format: ImageFormat;
-    imageDataList: Array<ImageData>;
+type CreateRequestsList = (props: {
+    responseType: 'arraybuffer' | 'blob';
+    requestUrls: Array<string>;
     setter: Dispatch<SetStateAction<number>>;
-}
+}) => Promise<AxiosResponse<any>>[];
 
-export const createRequestsIntoPromiseAll = async ({
-    imageDataList,
-    format,
-    setter,
-}: DownloadFilesProps) => {
-    if (imageDataList?.length) {
-        const listOfPercentages: Array<number> = [];
+export const createRequestsList: CreateRequestsList = ({ requestUrls, responseType, setter }) => {
+    // this should be an external array
+    // do not move it into the inner function
+    const listOfPercentages: Array<number> = [];
 
-        const axiosInstanceList = imageDataList.map(({ url }, index) =>
-            axios.get(url, {
-                responseType: format === 'jpeg' ? 'arraybuffer' : 'blob',
-                onDownloadProgress: (progressEvent) =>
-                    onDownloadAxiosProgressHandler({
-                        progressEvent,
-                        listOfPercentages,
-                        index,
-                        amountOfUrls: imageDataList.length,
-                        setter,
-                    }),
-            }),
-        );
-
-        /**
-         * [ [axios1, axios2, axios3], [axios4,axios5,axios6] ]
-         */
-        const chunks = splitArrayIntoChunks(axiosInstanceList, 5);
-
-        return chunks.map((axiosInstanceListChunk) => Promise.all(axiosInstanceListChunk));
-    }
+    return requestUrls.map((url, index) =>
+        axios.get(url, {
+            responseType,
+            onDownloadProgress: (progressEvent) => {
+                handleOnDownloadProgress({
+                    progressEvent,
+                    listOfPercentages,
+                    index,
+                    amountOfUrls: requestUrls.length,
+                    setter,
+                });
+            },
+        }),
+    );
 };

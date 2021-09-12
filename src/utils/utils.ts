@@ -94,10 +94,13 @@ export const extractFileNameFromUrl = (url: string) => {
     return result;
 };
 
-export const convertJpegsResponse = (downloadedFiles: Array<AxiosResponse>) => {
+export const convertJpegsResponse = (
+    downloadedFiles: Array<AxiosResponse> | Array<{ url: string; data: any }>,
+) => {
     const result = [];
-    downloadedFiles.forEach((response: AxiosResponse) => {
-        const fileName = extractFileNameFromUrl(response.config.url);
+    downloadedFiles.forEach((response) => {
+        const url = response?.config?.url || response.url;
+        const fileName = extractFileNameFromUrl(url);
 
         result.push({
             fileName,
@@ -181,7 +184,9 @@ export const getDownloadLinkProps = (
     };
 };
 
-export const splitArrayIntoChunks = (array, chunk_size) => {
+type SplitArrayIntoChunks = <T>(params: { array: Array<T>; chunk_size: number }) => Array<Array<T>>;
+
+export const splitArrayIntoChunks: SplitArrayIntoChunks = ({ array, chunk_size }) => {
     const results = [];
 
     while (array.length) {
